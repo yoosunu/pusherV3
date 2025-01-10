@@ -23,7 +23,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int retryCount = 0;
   DatabaseHelper dbHelper = DatabaseHelper();
   late List<INotification> fetchedData = [];
   bool isLoading = true;
