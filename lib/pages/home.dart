@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, non_constant_identifier_names
+// ignore_for_file: use_build_context_synchronously, non_constant_identifier_names, avoid_print
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -88,25 +88,13 @@ class _HomePageState extends State<HomePage> {
       foregroundTaskOptions: ForegroundTaskOptions(
         eventAction: ForegroundTaskEventAction.repeat(
             1200000), // 10분: 600000, 30분: 1800000,
-        autoRunOnBoot: true,
-        autoRunOnMyPackageReplaced: true,
+        autoRunOnBoot: false,
+        autoRunOnMyPackageReplaced: false,
         allowWakeLock: true,
         allowWifiLock: true,
       ),
     );
   }
-
-  // void _stopForegroundTask() {
-  //   FlutterForegroundTask.stopService();
-  // }
-
-  // void _restartForegroundTask() {
-  //   FlutterForegroundTask.restartService();
-  // }
-
-  // void _minimizeForegroundTask() {
-  //   FlutterForegroundTask.minimizeApp();
-  // }
 
   Future<List<INotification>> loadData() async {
     const String apiUrl = "https://backend.apot.pro/api/v1/notifications/";
