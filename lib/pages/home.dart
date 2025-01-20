@@ -116,7 +116,7 @@ class _HomePageState extends State<HomePage> {
             "Failed to load data: ${response.statusCode}, ${response.body}");
       }
     } catch (e) {
-      print("Error fetching data: $e");
+      print("Error fetching data loadData: $e");
       return [];
     }
   }
@@ -131,7 +131,7 @@ class _HomePageState extends State<HomePage> {
         fetchedData = data;
       });
     } catch (e) {
-      print('Error loading data: $e');
+      print('Error loading data loadAndSetData: $e');
     } finally {
       setState(() {
         isLoading = false;
@@ -346,94 +346,99 @@ class _HomePageState extends State<HomePage> {
                     ))
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : fetchedData.isEmpty
-              ? const Center(child: Text('No data available'))
-              : Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: <Widget>[
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
-                        child: SizedBox(
-                          child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: const Size(250, 50),
-                                backgroundColor: Colors.purple[50],
-                              ),
-                              onPressed: () {},
-                              child: SizedBox(
-                                width: 240,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    const Text(
-                                      'Updated: ',
-                                      style: TextStyle(fontSize: 20),
-                                    ),
-                                    Text(
-                                      formattedDate,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )),
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          color: Colors.white10,
+      body: RefreshIndicator(
+        onRefresh: loadAndSetData,
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : fetchedData.isEmpty
+                ? const Center(child: Text('No data available'))
+                : Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: <Widget>[
+                        Padding(
                           padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
-                          alignment: Alignment.center,
-                          child: ListView.builder(
-                            itemCount: isLoading ? 1 : fetchedData.length,
-                            itemBuilder: (BuildContext context, int index) {
-                              return Container(
-                                padding: const EdgeInsets.all(10),
-                                alignment: Alignment.center,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size(100, 55),
-                                    alignment: Alignment.center,
-                                  ),
-                                  onPressed: () {
-                                    showPopup(context, index);
-                                  },
+                          child: SizedBox(
+                            child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: const Size(250, 50),
+                                  backgroundColor: Colors.purple[50],
+                                ),
+                                onPressed: () {},
+                                child: SizedBox(
+                                  width: 240,
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
                                     children: [
-                                      Text(
-                                        '${fetchedData[index].code}',
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                        ),
+                                      const Text(
+                                        'Updated: ',
+                                        style: TextStyle(fontSize: 20),
                                       ),
-                                      const Padding(
-                                          padding: EdgeInsets.all(10)),
-                                      Expanded(
-                                        child: Text(
-                                          fetchedData[index].title,
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
+                                      Text(
+                                        formattedDate,
+                                        style: const TextStyle(
+                                          fontSize: 18,
                                         ),
                                       ),
                                     ],
                                   ),
-                                ),
-                              );
-                            },
+                                )),
                           ),
                         ),
-                      ),
-                    ],
+                        Expanded(
+                          child: Container(
+                            color: Colors.white10,
+                            padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+                            alignment: Alignment.center,
+                            child: ListView.builder(
+                              itemCount: isLoading ? 1 : fetchedData.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                return Container(
+                                  padding: const EdgeInsets.all(10),
+                                  alignment: Alignment.center,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      minimumSize: const Size(100, 55),
+                                      alignment: Alignment.center,
+                                    ),
+                                    onPressed: () {
+                                      showPopup(context, index);
+                                    },
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '${fetchedData[index].code}',
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                        const Padding(
+                                            padding: EdgeInsets.all(10)),
+                                        Expanded(
+                                          child: Text(
+                                            fetchedData[index].title,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(

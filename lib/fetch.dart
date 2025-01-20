@@ -1,3 +1,8 @@
+// ignore_for_file: avoid_print, non_constant_identifier_names
+
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html;
 
@@ -79,8 +84,11 @@ Future<List<INotificationBG>> fetchInfosBG(String url) async {
   try {
     // Fetch HTML content
     var response = await http.get(Uri.parse(url));
+
     if (response.statusCode == 200) {
-      var document = html.parse(response.body);
+      Uint8List bodyBytes = response.bodyBytes;
+      String decodedBody = utf8.decode(bodyBytes, allowMalformed: true);
+      var document = html.parse(decodedBody);
 
       // Find rows with class "tr-normal"
       var trs = document.getElementsByClassName('tr-normal');
@@ -127,12 +135,14 @@ Future<List<INotificationBG>> fetchInfosBG(String url) async {
             etc: etc,
           ),
         );
+        // print(fetchedData.last.code);
       }
     } else {
       print('Failed to load URL: $url');
     }
   } catch (e) {
-    print('Error fetching data: $e');
+    print('Error fetching data at fetchInfosBG: $e');
   }
+
   return fetchedData;
 }

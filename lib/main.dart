@@ -98,9 +98,9 @@ Future<ServiceRequestResult> _startService() async {
 
 Future<void> postDataBG() async {
   final List<String> urls = [
-    'https://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=1&menu=2377',
-    'https://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=2&menu=2377',
-    'https://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=3&menu=2377',
+    'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=1&menu=2377/',
+    'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=2&menu=2377',
+    'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=3&menu=2377',
   ];
 
   final Uri url = Uri.parse('https://backend.apot.pro/api/v1/notifications/');
@@ -111,7 +111,7 @@ Future<void> postDataBG() async {
   for (var result in results) {
     scrappedDataBG.addAll(result);
   }
-  // print(json.encode(scrappedDataBG[0].toJson()));
+
   for (INotificationBG data in scrappedDataBG) {
     try {
       var response = await http.post(
