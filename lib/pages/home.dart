@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, non_constant_identifier_names, avoid_print
+// ignore_for_file: use_build_context_synchronously, non_constant_identifier_names, avoid_print, no_leading_underscores_for_local_identifiers
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -12,6 +12,59 @@ import 'package:pusher_v3/sqldbinit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'dart:typed_data';
+
+Future<void> postData() async {
+  final List<String> urls = [
+    // 'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=1&menu=2377/',
+    // 'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=2&menu=2377',
+    'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=3&menu=2377',
+  ];
+
+  final Uri url =
+      Uri.parse("http://127.0.0.1:8000/admin/notifications/notification/");
+
+  List<INotificationBG> scrappedDataBG = [];
+  var results = await Future.wait(urls.map(fetchInfosBG));
+
+  for (var result in results) {
+    scrappedDataBG.addAll(result);
+  }
+
+  for (INotificationBG data in scrappedDataBG) {
+    try {
+      var response = await http.post(
+        url,
+        headers: {
+          // 'Jwt': '$access_token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(data.toJson()), // 데이터를 JSON으로 인코딩
+      );
+
+      // 응답 상태 코드 확인
+      if (response.statusCode == 201) {
+        await FlutterLocalNotification.showNotification(data.code, data.title,
+            '${data.code} ${data.tag} ${data.writer} ${data.etc}');
+        // print('succeed posting ${data.code}');
+      }
+
+      if (response.statusCode == 500) {
+        await FlutterLocalNotification.showNotification(
+            data.code, data.title, 'status 500 | ${data.code}');
+        print('500 error ${data.code} ${response.body}');
+      } else {
+        // await FlutterLocalNotification.showNotification(
+        //     data.code, data.title, 'post Error with ${data.code}');
+        print(
+            'Request failed with status: ${response.statusCode} | ${data.code} | ${response.body}');
+      }
+      print('wow');
+    } catch (e) {
+      print('Post error: $e');
+      await FlutterLocalNotification.showNotification(2, 'Post error', '$e');
+    }
+  }
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.title});
@@ -31,20 +84,24 @@ class _HomePageState extends State<HomePage> {
   bool isRunningGet = false; // forBG
   late DateTime timeStampGet; // forBG
 
-  Future<void> _onReceiveTaskData(Object data) async {
-    if (data is Map<String, dynamic>) {
-      final dynamic timestampMillis = data["timestampMillis"];
-      final bool isRunning = data["IsRunning"];
-      final bool isLoading = data["IsLoading"];
-      DateTime timestamp =
-          DateTime.fromMillisecondsSinceEpoch(timestampMillis, isUtc: true);
-      setState(() {
-        isRunningGet = isRunning;
-        timeStampGet = timestamp;
-        isLoadingGet = isLoading;
-      });
-    }
-  }
+  int selectedValue = 3600000;
+
+  String period = '';
+
+  // Future<void> _onReceiveTaskData(Object data) async {
+  //   if (data is Map<String, dynamic>) {
+  //     final dynamic timestampMillis = data["timestampMillis"];
+  //     final bool isRunning = data["IsRunning"];
+  //     final bool isLoading = data["IsLoading"];
+  //     DateTime timestamp =
+  //         DateTime.fromMillisecondsSinceEpoch(timestampMillis, isUtc: true);
+  //     setState(() {
+  //       isRunningGet = isRunning;
+  //       timeStampGet = timestamp;
+  //       isLoadingGet = isLoading;
+  //     });
+  //   }
+  // }
 
   Future<void> _requestPermissions() async {
     final NotificationPermission notificationPermission =
@@ -71,32 +128,33 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _initService() {
-    FlutterForegroundTask.init(
-      androidNotificationOptions: AndroidNotificationOptions(
-        channelId: 'foreground_service',
-        channelName: 'Foreground Service Notification',
-        channelDescription:
-            'This notification appears when the foreground service is running.',
-        onlyAlertOnce: true,
-      ),
-      iosNotificationOptions: const IOSNotificationOptions(
-        showNotification: false,
-        playSound: false,
-      ),
-      foregroundTaskOptions: ForegroundTaskOptions(
-        eventAction: ForegroundTaskEventAction.repeat(
-            1200000), // 10분: 600000, 30분: 1800000,
-        autoRunOnBoot: false,
-        autoRunOnMyPackageReplaced: false,
-        allowWakeLock: true,
-        allowWifiLock: true,
-      ),
-    );
-  }
+  // void _initService() {
+  //   FlutterForegroundTask.init(
+  //     androidNotificationOptions: AndroidNotificationOptions(
+  //       channelId: 'foreground_service',
+  //       channelName: 'Foreground Service Notification',
+  //       channelDescription:
+  //           'This notification appears when the foreground service is running.',
+  //       onlyAlertOnce: true,
+  //     ),
+  //     iosNotificationOptions: const IOSNotificationOptions(
+  //       showNotification: false,
+  //       playSound: false,
+  //     ),
+  //     foregroundTaskOptions: ForegroundTaskOptions(
+  //       eventAction: ForegroundTaskEventAction.repeat(
+  //           1200000), // 10분: 600000, 30분: 1800000,
+  //       autoRunOnBoot: false,
+  //       autoRunOnMyPackageReplaced: false,
+  //       allowWakeLock: true,
+  //       allowWifiLock: true,
+  //     ),
+  //   );
+  // }
 
   Future<List<INotification>> loadData() async {
-    const String apiUrl = "https://backend.apot.pro/api/v1/notifications/";
+    const String apiUrl =
+        "http://127.0.0.1:8000/admin/notifications/notification/";
 
     try {
       var response = await http.get(Uri.parse(apiUrl));
@@ -143,22 +201,23 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     loadAndSetData();
-    FlutterForegroundTask.addTaskDataCallback(_onReceiveTaskData);
+    postData();
+    // FlutterForegroundTask.addTaskDataCallback(_onReceiveTaskData);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Request permissions and initialize the service.
+      // _initService();
       _requestPermissions();
-      _initService();
     });
     super.initState();
   }
 
-  @override
-  void dispose() {
-    // Remove a callback to receive data sent from the TaskHandler.
-    FlutterForegroundTask.removeTaskDataCallback(_onReceiveTaskData);
-    super.dispose();
-  }
+  // @override
+  // void dispose() {
+  //   // Remove a callback to receive data sent from the TaskHandler.
+  //   FlutterForegroundTask.removeTaskDataCallback(_onReceiveTaskData);
+  //   super.dispose();
+  // }
 
   void showPopup(BuildContext context, int index) {
     showDialog(
@@ -326,6 +385,61 @@ class _HomePageState extends State<HomePage> {
         title: Text(widget.title),
         actions: <Widget>[
           Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 10, 0),
+              child: DropdownButton<int>(
+                value: selectedValue,
+                items: const [
+                  DropdownMenuItem(
+                    value: 60000,
+                    child: Text('1m'),
+                  ),
+                  DropdownMenuItem(
+                    value: 300000,
+                    child: Text('5m'),
+                  ),
+                  DropdownMenuItem(
+                    value: 1800000,
+                    child: Text('30m'),
+                  ),
+                  DropdownMenuItem(
+                    value: 3600000,
+                    child: Text('1h'),
+                  ),
+                  DropdownMenuItem(
+                    value: 10800000,
+                    child: Text('3h'),
+                  ),
+                  DropdownMenuItem(
+                    value: 21600000,
+                    child: Text('6h'),
+                  ),
+                  DropdownMenuItem(
+                    value: 43200000,
+                    child: Text('12h'),
+                  ),
+                  DropdownMenuItem(
+                    value: 86400000,
+                    child: Text('1d'),
+                  ),
+                ],
+                onChanged: (int? newValue) {
+                  setState(() {
+                    selectedValue = newValue!;
+                  });
+                },
+              )),
+          // Padding(
+          //   padding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
+          //   child: IconButton(
+          //     iconSize: 34,
+          //     onPressed: () {
+          //       FlutterLocalNotification.showNotification(
+          //           1, "test", "test message for debugging");
+          //     },
+          //     icon: const Icon(Icons.toggle_on_rounded),
+          //   ),
+          // ),
+          Padding(
               padding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
               child: isRunningGet
                   ? IconButton(
@@ -338,11 +452,41 @@ class _HomePageState extends State<HomePage> {
                     )
                   : IconButton(
                       iconSize: 34,
-                      onPressed: () {
-                        FlutterLocalNotification.showNotification(
-                            1, "test", "test message for debugging");
+                      onPressed: () => (selectedvalue) async {
+                        print('$selectedvalue');
+                        // FlutterLocalNotification.showNotification(
+                        //     1, "test", "test message for debugging");
+                        await FlutterForegroundTask.stopService();
+                        // await Future.delayed(const Duration(seconds: 5));
+                        FlutterForegroundTask.init(
+                          androidNotificationOptions:
+                              AndroidNotificationOptions(
+                            channelId: 'foreground_service',
+                            channelName: 'Foreground Service Notification',
+                            channelDescription:
+                                'This notification appears when the foreground service is running.',
+                            onlyAlertOnce: true,
+                          ),
+                          iosNotificationOptions: const IOSNotificationOptions(
+                            showNotification: false,
+                            playSound: false,
+                          ),
+                          foregroundTaskOptions: ForegroundTaskOptions(
+                            eventAction: ForegroundTaskEventAction.repeat(
+                                selectedvalue), // 10분: 600000, 30분: 1800000,
+                            autoRunOnBoot: false,
+                            autoRunOnMyPackageReplaced: false,
+                            allowWakeLock: true,
+                            allowWifiLock: true,
+                          ),
+                        );
+                        await FlutterForegroundTask.updateService(
+                          notificationText:
+                              "PusherV3 is running - period: $selectedvalue",
+                        );
+                        await FlutterForegroundTask.restartService();
                       },
-                      icon: const Icon(Icons.toggle_off_outlined),
+                      icon: const Icon(Icons.play_arrow),
                     ))
         ],
       ),
