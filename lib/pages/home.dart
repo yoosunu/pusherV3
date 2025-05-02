@@ -86,7 +86,7 @@ class _HomePageState extends State<HomePage> {
       ),
       foregroundTaskOptions: ForegroundTaskOptions(
         eventAction: ForegroundTaskEventAction.repeat(
-            1200000), // 10분: 600000, 30분: 1800000,
+            1200000), // 10분: 600000, 20분: 1200000, 30분: 1800000,
         autoRunOnBoot: false,
         autoRunOnMyPackageReplaced: false,
         allowWakeLock: true,
