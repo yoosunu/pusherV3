@@ -1,5 +1,10 @@
-<resources>
+<!-- <resources>
     <color name="primary">#e0d0f7</color>
     <color name="primary_variant">#e0d0f7</color>
     <color name="on_primary">#FFFFFF</color>
+</resources> -->
+<resources>
+    <color name="primary">#121212</color> <!-- 아주 어두운 회색 (사실상 블랙 테마 기본) -->
+    <color name="primary_variant">#1F1F1F</color> <!-- primary보다 살짝 밝은 톤 -->
+    <color name="on_primary">#FFFFFF</color> <!-- 텍스트나 아이콘은 흰색으로 대비 -->
 </resources>

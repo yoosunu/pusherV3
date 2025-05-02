@@ -167,9 +167,19 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'PushserV3',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+      // theme: ThemeData(
+      //   // colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      //   colorScheme: ColorScheme.fromSeed(
+      //       seedColor: const Color.fromARGB(221, 218, 193, 193)),
+      //   useMaterial3: true,
+      // ),
+      theme: ThemeData.dark().copyWith(
+        colorScheme: const ColorScheme.dark(
+          primary: Colors.white,
+          secondary: Colors.grey,
+          surface: Colors.black,
+          onPrimary: Colors.black,
+        ),
       ),
       home: const HomePage(
         title: 'Pusher',

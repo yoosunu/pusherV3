@@ -20,8 +20,7 @@ Future<void> postData() async {
     'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=3&menu=2377',
   ];
 
-  final Uri url =
-      Uri.parse("http://127.0.0.1:8000/admin/notifications/notification/");
+  final Uri url = Uri.parse("http://10.0.2.2:8000/api/v1/notifications/");
 
   List<INotificationBG> scrappedDataBG = [];
   var results = await Future.wait(urls.map(fetchInfosBG));
@@ -153,8 +152,7 @@ class _HomePageState extends State<HomePage> {
   // }
 
   Future<List<INotification>> loadData() async {
-    const String apiUrl =
-        "http://127.0.0.1:8000/admin/notifications/notification/";
+    const String apiUrl = "http://10.0.2.2:8000/api/v1/notifications/";
 
     try {
       var response = await http.get(Uri.parse(apiUrl));
@@ -246,7 +244,7 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Icon(
                           Icons.bookmark,
-                          color: Colors.deepPurple[300],
+                          color: Colors.grey[500],
                           size: 26,
                         ),
                         const SizedBox(
@@ -266,7 +264,7 @@ class _HomePageState extends State<HomePage> {
                     child: Row(children: [
                       Icon(
                         Icons.apartment_rounded,
-                        color: Colors.deepPurple[300],
+                        color: Colors.grey[500],
                       ),
                       const SizedBox(
                         width: 8,
@@ -284,7 +282,7 @@ class _HomePageState extends State<HomePage> {
                     child: Row(children: [
                       Icon(
                         Icons.calendar_month,
-                        color: Colors.deepPurple[300],
+                        color: Colors.grey[500],
                       ),
                       const SizedBox(
                         width: 8,
@@ -302,7 +300,7 @@ class _HomePageState extends State<HomePage> {
                     child: Row(children: [
                       Icon(
                         Icons.more_time,
-                        color: Colors.deepPurple[300],
+                        color: Colors.grey[500],
                       ),
                       const SizedBox(
                         width: 8,
@@ -341,7 +339,7 @@ class _HomePageState extends State<HomePage> {
           actions: [
             ElevatedButton(
               style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.all(Colors.white),
+                backgroundColor: WidgetStateProperty.all(Colors.grey[600]),
               ),
               onPressed: () async {
                 await dbHelper.saveNotification({
@@ -506,7 +504,7 @@ class _HomePageState extends State<HomePage> {
                             child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   minimumSize: const Size(250, 50),
-                                  backgroundColor: Colors.purple[50],
+                                  backgroundColor: Colors.grey[800],
                                 ),
                                 onPressed: () {},
                                 child: SizedBox(
@@ -533,7 +531,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         Expanded(
                           child: Container(
-                            color: Colors.white10,
+                            color: const Color(0xFF121212),
                             padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
                             alignment: Alignment.center,
                             child: ListView.builder(

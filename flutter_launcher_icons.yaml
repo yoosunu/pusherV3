@@ -1,7 +1,7 @@
 flutter_icons:
   ios: true
-  image_path: "assets/icons/pusher.png"
+  image_path: "assets/icons/fgBlack.png"
   android: "launcher_icon"
-  image_path_android: "assets/icons/pusher.png"
-  adaptive_icon_background: "assets/icons/pusherbg.png"
-  adaptive_icon_foreground: "assets/icons/pusher.png"
+  image_path_android: "assets/icons/fgBlack.png"
+  adaptive_icon_background: "assets/icons/bgBlack.png"
+  adaptive_icon_foreground: "assets/icons/fgBlack.png"
