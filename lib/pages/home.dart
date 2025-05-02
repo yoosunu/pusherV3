@@ -16,7 +16,7 @@ import 'dart:typed_data';
 Future<void> postData() async {
   final List<String> urls = [
     // 'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=1&menu=2377/',
-    // 'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=2&menu=2377',
+    'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=2&menu=2377',
     'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=3&menu=2377',
   ];
 
