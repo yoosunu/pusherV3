@@ -31,6 +31,62 @@ class _HomePageState extends State<HomePage> {
   bool isRunningGet = false; // forBG
   late DateTime timeStampGet; // forBG
 
+  Future<void> postDataFG() async {
+    final List<String> urls = [
+      'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=1&menu=2377/',
+      'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=2&menu=2377',
+      'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=3&menu=2377',
+    ];
+
+    final Uri url = Uri.parse('https://backend.apot.pro/api/v1/notifications/');
+    // final Uri url = Uri.parse('http://10.0.2.2:8000/api/v1/notifications/'); # for debug
+
+    List<INotificationBG> scrappedDataBG = [];
+    var results = await Future.wait(urls.map(fetchInfosBG));
+
+    for (var result in results) {
+      scrappedDataBG.addAll(result);
+    }
+
+    for (INotificationBG data in scrappedDataBG) {
+      try {
+        var response = await http.post(
+          url,
+          headers: {
+            // 'Jwt': '$access_token',
+            'Content-Type': 'application/json',
+          },
+          body: json.encode(data.toJson()), // 데이터를 JSON으로 인코딩
+        );
+
+        // for debug
+        // var ex = json.encode(data.toJson());
+        // print("wow: $ex");
+
+        // 응답 상태 코드 확인
+        if (response.statusCode == 201) {
+          await FlutterLocalNotification.showNotification(data.code, data.title,
+              '${data.code} ${data.tag} ${data.writer} ${data.etc}');
+          // print('succeed posting ${data.code}');
+        }
+
+        if (response.statusCode == 500) {
+          await FlutterLocalNotification.showNotification(
+              data.code, data.title, 'status 500 | ${data.code}');
+          print('500 error ${data.code} ${response.body}');
+        } else {
+          // await FlutterLocalNotification.showNotification(
+          //     data.code, data.title, 'post Error with ${data.code}');
+          print(
+              'Request failed with status: ${response.statusCode} | ${data.code} | ${response.body}');
+        }
+      } catch (e) {
+        print('Post error: $e');
+        await FlutterLocalNotification.showNotification(2, 'Post error', '$e');
+      }
+    }
+  }
+
   Future<void> _onReceiveTaskData(Object data) async {
     if (data is Map<String, dynamic>) {
       final dynamic timestampMillis = data["timestampMillis"];
@@ -325,6 +381,11 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
         actions: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
+            child: IconButton(
+                onPressed: postDataFG, icon: const Icon(Icons.send_rounded)),
+          ),
           Padding(
               padding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
               child: isRunningGet
