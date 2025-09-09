@@ -19,7 +19,8 @@ class _LoginPageState extends State<LoginPage> {
   final _storage = const FlutterSecureStorage();
 
   Future<void> login() async {
-    const String url = "https://backend.apot.pro/api/v1/users/jwt-login";
+    const String url =
+        "http://10.0.2.2:8000/api/v1/users/jwt-login"; // for debug
 
     final response = await http.post(Uri.parse(url),
         body: json.encode({
@@ -52,7 +53,20 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("JWT 로그인")),
+      appBar: AppBar(
+        title: const Text("Sign In"),
+        actions: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
+            child: IconButton(
+                iconSize: 34,
+                onPressed: () async {
+                  await _storage.deleteAll();
+                },
+                icon: const Icon(Icons.delete)),
+          )
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -70,6 +84,14 @@ class _LoginPageState extends State<LoginPage> {
             ElevatedButton(
               onPressed: login,
               child: const Text("LogIn"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Implementing...")),
+                );
+              },
+              child: const Text("Sign Up"),
             ),
           ],
         ),

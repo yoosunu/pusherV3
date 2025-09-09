@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 // import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 // import 'dart:convert';
 // import 'package:http/http.dart' as http;
+import 'package:pusher_v3/pages/login.dart';
 import 'pages/home.dart';
 // import 'package:pusher_v3/fetch.dart';
 import 'package:pusher_v3/notification.dart';
@@ -186,6 +187,7 @@ class MyApp extends StatelessWidget {
       ),
       routes: <String, WidgetBuilder>{
         '/home': (BuildContext context) => const HomePage(title: 'Home'),
+        '/login': (BuildContext context) => const LoginPage(title: 'Login'),
       },
     );
   }

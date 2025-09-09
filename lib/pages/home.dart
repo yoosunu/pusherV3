@@ -7,63 +7,13 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:pusher_v3/fetch.dart';
 import 'package:intl/intl.dart';
 import 'package:pusher_v3/notification.dart';
+import 'package:pusher_v3/pages/login.dart';
 import 'package:pusher_v3/pages/save.dart';
 import 'package:pusher_v3/sqldbinit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'dart:typed_data';
-
-Future<void> postData() async {
-  final List<String> urls = [
-    // 'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=1&menu=2377/',
-    'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=2&menu=2377',
-    'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=3&menu=2377',
-  ];
-
-  final Uri url = Uri.parse("http://10.0.2.2:8000/api/v1/notifications/");
-
-  List<INotificationBG> scrappedDataBG = [];
-  var results = await Future.wait(urls.map(fetchInfosBG));
-
-  for (var result in results) {
-    scrappedDataBG.addAll(result);
-  }
-
-  for (INotificationBG data in scrappedDataBG) {
-    try {
-      var response = await http.post(
-        url,
-        headers: {
-          // 'Jwt': '$access_token',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode(data.toJson()), // 데이터를 JSON으로 인코딩
-      );
-
-      // 응답 상태 코드 확인
-      if (response.statusCode == 201) {
-        await FlutterLocalNotification.showNotification(data.code, data.title,
-            '${data.code} ${data.tag} ${data.writer} ${data.etc}');
-        // print('succeed posting ${data.code}');
-      }
-
-      if (response.statusCode == 500) {
-        await FlutterLocalNotification.showNotification(
-            data.code, data.title, 'status 500 | ${data.code}');
-        print('500 error ${data.code} ${response.body}');
-      } else {
-        // await FlutterLocalNotification.showNotification(
-        //     data.code, data.title, 'post Error with ${data.code}');
-        print(
-            'Request failed with status: ${response.statusCode} | ${data.code} | ${response.body}');
-      }
-      print('wow');
-    } catch (e) {
-      print('Post error: $e');
-      await FlutterLocalNotification.showNotification(2, 'Post error', '$e');
-    }
-  }
-}
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.title});
@@ -83,9 +33,157 @@ class _HomePageState extends State<HomePage> {
   bool isRunningGet = false; // forBG
   late DateTime timeStampGet; // forBG
 
-  int selectedValue = 3600000;
+  final _storage = const FlutterSecureStorage();
 
-  String period = '';
+  Map<String, dynamic>? userDataGet;
+
+  Future<void> getTokens() async {
+    String? refreshToken = await _storage.read(key: "refresh_token");
+    String? accessToken = await _storage.read(key: "access_token");
+
+    if (refreshToken == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginPage(
+            title: "Login",
+          ),
+        ),
+      );
+    } else if (accessToken == null) {
+      const String url = "http://10.0.2.2:8000/api/v1/users/refresh-at";
+
+      final response = await http.post(Uri.parse(url),
+          body: json.encode({
+            "refresh_token": refreshToken,
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+          });
+
+      if (response.statusCode == 200) {
+        var atData = json.decode(response.body);
+        String at = atData["access_token"];
+        await _storage.write(key: "access_token", value: at);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to Refresh AT")),
+        );
+      }
+    }
+  }
+
+  Future<void> refreshAT() async {
+    const String url = "http://10.0.2.2:8000/api/v1/users/refresh-at";
+
+    String? refreshToken = await _storage.read(key: "refresh_token");
+
+    final responsePostRT = await http.post(Uri.parse(url),
+        body: json.encode({
+          "refresh_token": refreshToken,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        });
+
+    if (responsePostRT.statusCode == 200) {
+      var atData = json.decode(responsePostRT.body);
+      String at = atData["access_token"];
+      await _storage.write(key: "access_token", value: at);
+    } else {
+      // print("wow: $refreshToken");
+      await FlutterLocalNotification.showNotification(403, 'AT Error',
+          'Failed to refresh AT with ${responsePostRT.statusCode} | ${responsePostRT.body}');
+    }
+  }
+
+  Future<void> getUser() async {
+    getTokens();
+
+    const String url = "http://10.0.2.2:8000/api/v1/users/me";
+    String? accessToken = await _storage.read(key: "access_token");
+
+    final responseGetUser = await http.get(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": "Bearer $accessToken",
+      },
+    );
+
+    if (responseGetUser.statusCode == 200) {
+      var userData = json.decode(responseGetUser.body);
+      setState(() {
+        userDataGet = userData;
+      });
+    } else if (responseGetUser.statusCode == 403) {
+      refreshAT();
+    } else {
+      // print("${responseUser.body}");
+      await FlutterLocalNotification.showNotification(500, 'Get User Error',
+          'Failed to get User with ${responseGetUser.statusCode} | ${responseGetUser.body}');
+    }
+  }
+
+  Future<void> postData() async {
+    final List<String> urls = [
+      'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=1&menu=2377/',
+      // 'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=2&menu=2377',
+      // 'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=3&menu=2377',
+    ];
+
+    final Uri url = Uri.parse("http://10.0.2.2:8000/api/v1/notifications/");
+
+    String? accessToken = await _storage.read(key: "access_token");
+
+    List<INotificationBG> scrappedDataBG = [];
+    var results = await Future.wait(urls.map(fetchInfosBG));
+
+    for (var result in results) {
+      scrappedDataBG.addAll(result);
+    }
+
+    for (INotificationBG data in scrappedDataBG) {
+      try {
+        var response = await http.post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+          body: json.encode(data.toJson()), // 데이터를 JSON으로 인코딩
+        );
+
+        // 응답 상태 코드 확인
+        if (response.statusCode == 201) {
+          await FlutterLocalNotification.showNotification(data.code, data.title,
+              '${data.code} ${data.tag} ${data.writer} ${data.etc}');
+          print('succeed posting ${data.code}');
+        }
+
+        if (response.statusCode == 500) {
+          await FlutterLocalNotification.showNotification(
+              data.code, data.title, 'status 500 | ${data.code}');
+          print('500 error ${data.code} ${response.body}');
+        } else if (response.statusCode == 403) {
+          getUser();
+          break;
+        } else {
+          await FlutterLocalNotification.showNotification(
+              data.code,
+              'Post Error',
+              'Failed to post ${data.code} with ${response.statusCode} | ${response.body}');
+          // print(
+          //     'Request failed with status: ${response.statusCode} | ${data.code} | ${response.body}');
+        }
+        // print('wow');
+      } catch (e) {
+        print('Caught Error while Posting: $e');
+        await FlutterLocalNotification.showNotification(
+            2, 'Caught Error while Posting', '$e');
+      }
+    }
+  }
 
   // Future<void> _onReceiveTaskData(Object data) async {
   //   if (data is Map<String, dynamic>) {
@@ -199,7 +297,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     loadAndSetData();
-    postData();
+    // postData();
     // FlutterForegroundTask.addTaskDataCallback(_onReceiveTaskData);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -207,6 +305,8 @@ class _HomePageState extends State<HomePage> {
       // _initService();
       _requestPermissions();
     });
+
+    getUser();
     super.initState();
   }
 
@@ -383,60 +483,17 @@ class _HomePageState extends State<HomePage> {
         title: Text(widget.title),
         actions: <Widget>[
           Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 10, 0),
-              child: DropdownButton<int>(
-                value: selectedValue,
-                items: const [
-                  DropdownMenuItem(
-                    value: 60000,
-                    child: Text('1m'),
-                  ),
-                  DropdownMenuItem(
-                    value: 300000,
-                    child: Text('5m'),
-                  ),
-                  DropdownMenuItem(
-                    value: 1800000,
-                    child: Text('30m'),
-                  ),
-                  DropdownMenuItem(
-                    value: 3600000,
-                    child: Text('1h'),
-                  ),
-                  DropdownMenuItem(
-                    value: 10800000,
-                    child: Text('3h'),
-                  ),
-                  DropdownMenuItem(
-                    value: 21600000,
-                    child: Text('6h'),
-                  ),
-                  DropdownMenuItem(
-                    value: 43200000,
-                    child: Text('12h'),
-                  ),
-                  DropdownMenuItem(
-                    value: 86400000,
-                    child: Text('1d'),
-                  ),
-                ],
-                onChanged: (int? newValue) {
-                  setState(() {
-                    selectedValue = newValue!;
-                  });
-                },
-              )),
-          // Padding(
-          //   padding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
-          //   child: IconButton(
-          //     iconSize: 34,
-          //     onPressed: () {
-          //       FlutterLocalNotification.showNotification(
-          //           1, "test", "test message for debugging");
-          //     },
-          //     icon: const Icon(Icons.toggle_on_rounded),
-          //   ),
-          // ),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+            child: IconButton(
+              iconSize: 34,
+              onPressed: () async {},
+              icon: const Icon(Icons.person),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 10, 30, 0),
+            child: Text(userDataGet?['username'] ?? "Loading..."),
+          ),
           Padding(
               padding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
               child: isRunningGet
@@ -450,39 +507,8 @@ class _HomePageState extends State<HomePage> {
                     )
                   : IconButton(
                       iconSize: 34,
-                      onPressed: () => (selectedvalue) async {
-                        print('$selectedvalue');
-                        // FlutterLocalNotification.showNotification(
-                        //     1, "test", "test message for debugging");
-                        await FlutterForegroundTask.stopService();
-                        // await Future.delayed(const Duration(seconds: 5));
-                        FlutterForegroundTask.init(
-                          androidNotificationOptions:
-                              AndroidNotificationOptions(
-                            channelId: 'foreground_service',
-                            channelName: 'Foreground Service Notification',
-                            channelDescription:
-                                'This notification appears when the foreground service is running.',
-                            onlyAlertOnce: true,
-                          ),
-                          iosNotificationOptions: const IOSNotificationOptions(
-                            showNotification: false,
-                            playSound: false,
-                          ),
-                          foregroundTaskOptions: ForegroundTaskOptions(
-                            eventAction: ForegroundTaskEventAction.repeat(
-                                selectedvalue), // 10분: 600000, 30분: 1800000,
-                            autoRunOnBoot: false,
-                            autoRunOnMyPackageReplaced: false,
-                            allowWakeLock: true,
-                            allowWifiLock: true,
-                          ),
-                        );
-                        await FlutterForegroundTask.updateService(
-                          notificationText:
-                              "PusherV3 is running - period: $selectedvalue",
-                        );
-                        await FlutterForegroundTask.restartService();
+                      onPressed: () {
+                        postData();
                       },
                       icon: const Icon(Icons.play_arrow),
                     ))
