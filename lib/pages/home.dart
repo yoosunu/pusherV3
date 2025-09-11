@@ -4,9 +4,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pusher_v3/fetch.dart';
 import 'package:intl/intl.dart';
 import 'package:pusher_v3/notification.dart';
+import 'package:pusher_v3/pages/login.dart';
 import 'package:pusher_v3/pages/save.dart';
 import 'package:pusher_v3/sqldbinit.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -31,7 +33,75 @@ class _HomePageState extends State<HomePage> {
   bool isRunningGet = false; // forBG
   late DateTime timeStampGet; // forBG
 
-  Future<void> postDataFG() async {
+  final _storage = const FlutterSecureStorage();
+
+  Map<String, dynamic>? userDataGet;
+
+  Future<void> getTokens() async {
+    String? refreshToken = await _storage.read(key: "refresh_token");
+    String? accessToken = await _storage.read(key: "access_token");
+
+    if (refreshToken == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginPage(title: "Login"),
+        ),
+      );
+    } else if (accessToken == null) {
+      refreshAT();
+    }
+  }
+
+  Future<void> refreshAT() async {
+    const String url = "https://backend.apot.pro/api/v1/users/refresh-at";
+
+    String? refreshToken = await _storage.read(key: "refresh_token");
+
+    final response = await http.post(Uri.parse(url),
+        body: json.encode({"refresh_token": refreshToken}),
+        headers: {'Content-Type': 'application/json'});
+
+    if (response.statusCode == 200) {
+      var atData = json.decode(response.body);
+      String at = atData["access_token"];
+      await _storage.write(key: "access_token", value: at);
+    } else {
+      await FlutterLocalNotification.showNotification(403, 'AT Error',
+          'Failed to refresh AT with ${response.statusCode} | ${response.body}');
+    }
+  }
+
+  Future<void> getUser() async {
+    const String url = "https://backend.apot.pro/api/v1/users/me";
+
+    String? access_token = await _storage.read(key: "access_token");
+
+    final responseGetUser = await http.get(Uri.parse(url), headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $access_token',
+    });
+
+    if (responseGetUser.statusCode == 200) {
+      var userData = json.decode(responseGetUser.body);
+      setState(() {
+        userDataGet = userData;
+      });
+      await postDataFG(access_token!);
+    } else if (responseGetUser.statusCode == 403) {
+      await refreshAT();
+      await getUser();
+    } else {
+      await refreshAT();
+      await getUser();
+      await FlutterLocalNotification.showNotification(500, 'Get User Error',
+          'Failed to get User with ${responseGetUser.statusCode} | ${responseGetUser.body}');
+      // print(
+      //     'Failed to get User with ${responseGetUser.statusCode} | ${responseGetUser.body}');
+    }
+  }
+
+  Future<void> postDataFG(String accessToken) async {
     final List<String> urls = [
       'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=1&menu=2377/',
       'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=2&menu=2377',
@@ -39,7 +109,6 @@ class _HomePageState extends State<HomePage> {
     ];
 
     final Uri url = Uri.parse('https://backend.apot.pro/api/v1/notifications/');
-    // final Uri url = Uri.parse('http://10.0.2.2:8000/api/v1/notifications/'); # for debug
 
     List<INotificationBG> scrappedDataBG = [];
     var results = await Future.wait(urls.map(fetchInfosBG));
@@ -53,17 +122,12 @@ class _HomePageState extends State<HomePage> {
         var response = await http.post(
           url,
           headers: {
-            // 'Jwt': '$access_token',
+            'Authorization': 'Bearer $accessToken',
             'Content-Type': 'application/json',
           },
           body: json.encode(data.toJson()), // 데이터를 JSON으로 인코딩
         );
 
-        // for debug
-        // var ex = json.encode(data.toJson());
-        // print("wow: $ex");
-
-        // 응답 상태 코드 확인
         if (response.statusCode == 201) {
           await FlutterLocalNotification.showNotification(data.code, data.title,
               '${data.code} ${data.tag} ${data.writer} ${data.etc}');
@@ -73,16 +137,17 @@ class _HomePageState extends State<HomePage> {
         if (response.statusCode == 500) {
           await FlutterLocalNotification.showNotification(
               data.code, data.title, 'status 500 | ${data.code}');
-          print('500 error ${data.code} ${response.body}');
+          // print('500 error ${data.code} ${response.body}');
         } else {
           // await FlutterLocalNotification.showNotification(
           //     data.code, data.title, 'post Error with ${data.code}');
-          print(
-              'Request failed with status: ${response.statusCode} | ${data.code} | ${response.body}');
+          // print(
+          //     'Request failed with status: ${response.statusCode} | ${data.code} | ${response.body}');
         }
       } catch (e) {
-        print('Post error: $e');
-        await FlutterLocalNotification.showNotification(2, 'Post error', '$e');
+        // print('Post error: $e');
+        await FlutterLocalNotification.showNotification(
+            2, 'Caught Error while Posting', '$e');
       }
     }
   }
@@ -204,6 +269,7 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Request permissions and initialize the service.
       _requestPermissions();
+      getUser();
       _initService();
     });
     super.initState();
@@ -382,25 +448,43 @@ class _HomePageState extends State<HomePage> {
         title: Text(widget.title),
         actions: <Widget>[
           Padding(
-            padding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
             child: IconButton(
-                onPressed: postDataFG, icon: const Icon(Icons.send_rounded)),
+              iconSize: 34,
+              onPressed: () async {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const LoginPage(title: "Login")),
+                );
+              },
+              icon: const Icon(Icons.person),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 10, 40, 0),
+            child: Text(userDataGet?['username'] ?? "Loading..."),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+            child: IconButton(
+                onPressed: getUser, icon: const Icon(Icons.send_rounded)),
           ),
           Padding(
               padding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
               child: isRunningGet
                   ? IconButton(
                       iconSize: 34,
-                      onPressed: () {
-                        FlutterLocalNotification.showNotification(
+                      onPressed: () async {
+                        await FlutterLocalNotification.showNotification(
                             1, "test", "test message for debugging");
                       },
                       icon: const Icon(Icons.toggle_on_rounded),
                     )
                   : IconButton(
                       iconSize: 34,
-                      onPressed: () {
-                        FlutterLocalNotification.showNotification(
+                      onPressed: () async {
+                        await FlutterLocalNotification.showNotification(
                             1, "test", "test message for debugging");
                       },
                       icon: const Icon(Icons.toggle_off_outlined),

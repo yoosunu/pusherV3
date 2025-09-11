@@ -1,13 +1,13 @@
-// ignore_for_file: non_constant_identifier_names, avoid_print
-
+// ignore_for_file: non_constant_identifier_names, avoid_print, no_leading_underscores_for_local_identifiers
 import 'package:flutter/material.dart';
-// import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:pusher_v3/pages/login.dart';
 import 'pages/home.dart';
 import 'package:pusher_v3/fetch.dart';
 import 'package:pusher_v3/notification.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 @pragma('vm:entry-point')
 void startCallback() async {
@@ -37,7 +37,7 @@ class MyTaskHandler extends TaskHandler {
     FlutterForegroundTask.sendDataToMain(data);
 
     // background posting logic
-    postDataBG();
+    getUserBG();
   }
 
   // Called when the task is destroyed.
@@ -96,7 +96,52 @@ Future<ServiceRequestResult> _startService() async {
   }
 }
 
-Future<void> postDataBG() async {
+Future<void> refreshATBG() async {
+  const String url = "https://backend.apot.pro/api/v1/users/refresh-at";
+
+  var _storage = const FlutterSecureStorage();
+  String? refreshToken = await _storage.read(key: "refresh_token");
+
+  var response = await http.post(Uri.parse(url),
+      body: json.encode({"refresh_token": refreshToken}),
+      headers: {'Content-Type': 'application/json'});
+
+  if (response.statusCode == 200) {
+    var atData = json.decode(response.body);
+    String at = atData["access_token"];
+    await _storage.write(key: "access_token", value: at);
+  } else {
+    await FlutterLocalNotification.showNotification(403, 'AT Error',
+        'Failed to refresh AT with ${response.statusCode} | ${response.body}');
+  }
+}
+
+Future<void> getUserBG() async {
+  var _storage = const FlutterSecureStorage();
+
+  const String url = "https://backend.apot.pro/api/v1/users/me";
+
+  String? access_token = await _storage.read(key: "access_token");
+
+  final responseGetUser = await http.get(Uri.parse(url), headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $access_token',
+  });
+
+  if (responseGetUser.statusCode == 200) {
+    await postDataBG(access_token!);
+  } else if (responseGetUser.statusCode == 403) {
+    await refreshATBG();
+    await getUserBG();
+  } else {
+    await refreshATBG();
+    await getUserBG();
+    await FlutterLocalNotification.showNotification(500, 'Get User Error',
+        'Failed to get User with ${responseGetUser.statusCode} | ${responseGetUser.body}');
+  }
+}
+
+Future<void> postDataBG(String accessToken) async {
   final List<String> urls = [
     'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=1&menu=2377/',
     'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=2&menu=2377',
@@ -117,13 +162,12 @@ Future<void> postDataBG() async {
       var response = await http.post(
         url,
         headers: {
-          // 'Jwt': '$access_token',
+          'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
         },
-        body: json.encode(data.toJson()), // 데이터를 JSON으로 인코딩
+        body: json.encode(data.toJson()),
       );
 
-      // 응답 상태 코드 확인
       if (response.statusCode == 201) {
         await FlutterLocalNotification.showNotification(data.code, data.title,
             '${data.code} ${data.tag} ${data.writer} ${data.etc}');
@@ -133,15 +177,15 @@ Future<void> postDataBG() async {
       if (response.statusCode == 500) {
         await FlutterLocalNotification.showNotification(
             data.code, data.title, 'status 500 | ${data.code}');
-        print('500 error ${data.code} ${response.body}');
+        // print('500 error ${data.code} ${response.body}');
       } else {
         // await FlutterLocalNotification.showNotification(
         //     data.code, data.title, 'post Error with ${data.code}');
-        print(
-            'Request failed with status: ${response.statusCode} | ${data.code} | ${response.body}');
+        // print(
+        //     'Request failed with status: ${response.statusCode} | ${data.code} | ${response.body}');
       }
     } catch (e) {
-      print('Post error: $e');
+      // print('Post error: $e');
       await FlutterLocalNotification.showNotification(2, 'Post error', '$e');
     }
   }
@@ -175,6 +219,7 @@ class MyApp extends StatelessWidget {
       ),
       routes: <String, WidgetBuilder>{
         '/home': (BuildContext context) => const HomePage(title: 'Home'),
+        '/login': (BuildContext context) => const LoginPage(title: 'Login'),
       },
     );
   }
