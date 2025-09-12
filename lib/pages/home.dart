@@ -67,8 +67,10 @@ class _HomePageState extends State<HomePage> {
       String at = atData["access_token"];
       await _storage.write(key: "access_token", value: at);
     } else {
-      await FlutterLocalNotification.showNotification(403, 'AT Error',
+      print(
           'Failed to refresh AT with ${response.statusCode} | ${response.body}');
+      // await FlutterLocalNotification.showNotification(403, 'AT Error',
+      //     'Failed to refresh AT with ${response.statusCode} | ${response.body}');
     }
   }
 
@@ -94,10 +96,10 @@ class _HomePageState extends State<HomePage> {
     } else {
       await refreshAT();
       await getUser();
-      await FlutterLocalNotification.showNotification(500, 'Get User Error',
-          'Failed to get User with ${responseGetUser.statusCode} | ${responseGetUser.body}');
-      // print(
+      // await FlutterLocalNotification.showNotification(500, 'Get User Error',
       //     'Failed to get User with ${responseGetUser.statusCode} | ${responseGetUser.body}');
+      print(
+          'Failed to get User with ${responseGetUser.statusCode} | ${responseGetUser.body}');
     }
   }
 
@@ -135,19 +137,19 @@ class _HomePageState extends State<HomePage> {
         }
 
         if (response.statusCode == 500) {
-          await FlutterLocalNotification.showNotification(
-              data.code, data.title, 'status 500 | ${data.code}');
-          // print('500 error ${data.code} ${response.body}');
+          // await FlutterLocalNotification.showNotification(
+          //     data.code, data.title, 'status 500 | ${data.code}');
+          print('500 error ${data.code} ${response.body}');
         } else {
           // await FlutterLocalNotification.showNotification(
           //     data.code, data.title, 'post Error with ${data.code}');
-          // print(
-          //     'Request failed with status: ${response.statusCode} | ${data.code} | ${response.body}');
+          print(
+              'Request failed with status: ${response.statusCode} | ${data.code} | ${response.body}');
         }
       } catch (e) {
-        // print('Post error: $e');
-        await FlutterLocalNotification.showNotification(
-            2, 'Caught Error while Posting', '$e');
+        print('Post error: $e');
+        // await FlutterLocalNotification.showNotification(
+        //     2, 'Caught Error while Posting', '$e');
       }
     }
   }

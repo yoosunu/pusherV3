@@ -111,8 +111,10 @@ Future<void> refreshATBG() async {
     String at = atData["access_token"];
     await _storage.write(key: "access_token", value: at);
   } else {
-    await FlutterLocalNotification.showNotification(403, 'AT Error',
+    print(
         'Failed to refresh AT with ${response.statusCode} | ${response.body}');
+    // await FlutterLocalNotification.showNotification(403, 'AT Error',
+    //     'Failed to refresh AT with ${response.statusCode} | ${response.body}');
   }
 }
 
@@ -134,10 +136,14 @@ Future<void> getUserBG() async {
     await refreshATBG();
     await getUserBG();
   } else {
+    print(
+        'Failed to get User with ${responseGetUser.statusCode} | ${responseGetUser.body}');
     await refreshATBG();
     await getUserBG();
-    await FlutterLocalNotification.showNotification(500, 'Get User Error',
-        'Failed to get User with ${responseGetUser.statusCode} | ${responseGetUser.body}');
+    // await FlutterLocalNotification.showNotification(
+    //     responseGetUser.statusCode,
+    //     'Get User Error',
+    //     'Failed to get User with ${responseGetUser.statusCode} | ${responseGetUser.body}');
   }
 }
 
@@ -175,18 +181,18 @@ Future<void> postDataBG(String accessToken) async {
       }
 
       if (response.statusCode == 500) {
-        await FlutterLocalNotification.showNotification(
-            data.code, data.title, 'status 500 | ${data.code}');
-        // print('500 error ${data.code} ${response.body}');
+        // await FlutterLocalNotification.showNotification(
+        //     data.code, data.title, 'status 500 | ${data.code}');
+        print('500 error ${data.code} ${response.body}');
       } else {
         // await FlutterLocalNotification.showNotification(
         //     data.code, data.title, 'post Error with ${data.code}');
-        // print(
-        //     'Request failed with status: ${response.statusCode} | ${data.code} | ${response.body}');
+        print(
+            'Request failed with status: ${response.statusCode} | ${data.code} | ${response.body}');
       }
     } catch (e) {
-      // print('Post error: $e');
-      await FlutterLocalNotification.showNotification(2, 'Post error', '$e');
+      print('Post error: $e');
+      // await FlutterLocalNotification.showNotification(2, 'Post error', '$e');
     }
   }
 }
