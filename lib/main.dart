@@ -97,7 +97,7 @@ Future<ServiceRequestResult> _startService() async {
 }
 
 Future<void> refreshATBG() async {
-  const String url = "https://backend.apot.pro/api/v1/users/refresh-at";
+  const String url = "https://backend.apotb.shop/api/v1/users/refresh-at";
 
   var _storage = const FlutterSecureStorage();
   String? refreshToken = await _storage.read(key: "refresh_token");
@@ -121,7 +121,7 @@ Future<void> refreshATBG() async {
 Future<void> getUserBG() async {
   var _storage = const FlutterSecureStorage();
 
-  const String url = "https://backend.apot.pro/api/v1/users/me";
+  const String url = "https://backend.apotb.shop/api/v1/users/me";
 
   String? access_token = await _storage.read(key: "access_token");
 
@@ -132,7 +132,7 @@ Future<void> getUserBG() async {
 
   if (responseGetUser.statusCode == 200) {
     await postDataBG(access_token!);
-  } else if (responseGetUser.statusCode == 403) {
+  } else if (responseGetUser.statusCode == 401) {
     await refreshATBG();
     await getUserBG();
   } else {
@@ -154,7 +154,7 @@ Future<void> postDataBG(String accessToken) async {
     'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=3&menu=2377',
   ];
 
-  final Uri url = Uri.parse('https://backend.apot.pro/api/v1/notifications/');
+  final Uri url = Uri.parse('https://backend.apotb.shop/api/v1/notifications/');
 
   List<INotificationBG> scrappedDataBG = [];
   var results = await Future.wait(urls.map(fetchInfosBG));
@@ -184,6 +184,8 @@ Future<void> postDataBG(String accessToken) async {
         // await FlutterLocalNotification.showNotification(
         //     data.code, data.title, 'status 500 | ${data.code}');
         print('500 error ${data.code} ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('401 error ${data.code} ${response.body}');
       } else {
         // await FlutterLocalNotification.showNotification(
         //     data.code, data.title, 'post Error with ${data.code}');

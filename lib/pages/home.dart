@@ -54,7 +54,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> refreshAT() async {
-    const String url = "https://backend.apot.pro/api/v1/users/refresh-at";
+    const String url = "https://backend.apotb.shop/api/v1/users/refresh-at";
 
     String? refreshToken = await _storage.read(key: "refresh_token");
 
@@ -75,7 +75,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> getUser() async {
-    const String url = "https://backend.apot.pro/api/v1/users/me";
+    const String url = "https://backend.apotb.shop/api/v1/users/me";
 
     String? access_token = await _storage.read(key: "access_token");
 
@@ -90,7 +90,7 @@ class _HomePageState extends State<HomePage> {
         userDataGet = userData;
       });
       await postDataFG(access_token!);
-    } else if (responseGetUser.statusCode == 403) {
+    } else if (responseGetUser.statusCode == 401) {
       await refreshAT();
       await getUser();
     } else {
@@ -110,7 +110,8 @@ class _HomePageState extends State<HomePage> {
       'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=3&menu=2377',
     ];
 
-    final Uri url = Uri.parse('https://backend.apot.pro/api/v1/notifications/');
+    final Uri url =
+        Uri.parse('https://backend.apotb.shop/api/v1/notifications/');
 
     List<INotificationBG> scrappedDataBG = [];
     var results = await Future.wait(urls.map(fetchInfosBG));
@@ -140,6 +141,8 @@ class _HomePageState extends State<HomePage> {
           // await FlutterLocalNotification.showNotification(
           //     data.code, data.title, 'status 500 | ${data.code}');
           print('500 error ${data.code} ${response.body}');
+        } else if (response.statusCode == 401) {
+          print('401 error ${data.code} ${response.body}');
         } else {
           // await FlutterLocalNotification.showNotification(
           //     data.code, data.title, 'post Error with ${data.code}');
@@ -219,7 +222,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<List<INotification>> loadData() async {
-    const String apiUrl = "https://backend.apot.pro/api/v1/notifications/";
+    const String apiUrl = "https://backend.apotb.shop/api/v1/notifications/";
 
     try {
       var response = await http.get(Uri.parse(apiUrl));

@@ -21,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   final _storage = const FlutterSecureStorage();
 
   Future<void> login() async {
-    const String url = "https://backend.apot.pro/api/v1/users/jwt-login";
+    const String url = "https://backend.apotb.shop/api/v1/users/jwt-login";
 
     final response = await http.post(Uri.parse(url),
         body: json.encode({
