@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pusher_v3/pages/home.dart';
+import 'package:pusher_v3/config.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.title});
@@ -21,7 +22,7 @@ class _LoginPageState extends State<LoginPage> {
   final _storage = const FlutterSecureStorage();
 
   Future<void> login() async {
-    const String url = "https://backend.apotb.shop/api/v1/users/jwt-login";
+    const String url = "$apiBaseUrl/users/jwt-login";
 
     final response = await http.post(Uri.parse(url),
         body: json.encode({
