@@ -14,6 +14,7 @@ import 'package:pusher_v3/sqldbinit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'dart:typed_data';
+import 'package:pusher_v3/config.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.title});
@@ -53,8 +54,8 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> refreshAT() async {
-    const String url = "https://backend.apotb.shop/api/v1/users/refresh-at";
+  Future<bool> refreshAT() async {
+    const String url = "$apiBaseUrl/users/refresh-at";
 
     String? refreshToken = await _storage.read(key: "refresh_token");
 
@@ -66,16 +67,19 @@ class _HomePageState extends State<HomePage> {
       var atData = json.decode(response.body);
       String at = atData["access_token"];
       await _storage.write(key: "access_token", value: at);
+      return true;
     } else {
       print(
           'Failed to refresh AT with ${response.statusCode} | ${response.body}');
       // await FlutterLocalNotification.showNotification(403, 'AT Error',
       //     'Failed to refresh AT with ${response.statusCode} | ${response.body}');
     }
+    return false;
   }
 
-  Future<void> getUser() async {
-    const String url = "https://backend.apotb.shop/api/v1/users/me";
+  // retry: 토큰 갱신 후 재시도는 1회만 (갱신 실패 시 무한 재귀 방지)
+  Future<void> getUser({int retry = 0}) async {
+    const String url = "$apiBaseUrl/users/me";
 
     String? access_token = await _storage.read(key: "access_token");
 
@@ -91,11 +95,13 @@ class _HomePageState extends State<HomePage> {
       });
       await postDataFG(access_token!);
     } else if (responseGetUser.statusCode == 401) {
-      await refreshAT();
-      await getUser();
+      if (retry < 1 && await refreshAT()) {
+        await getUser(retry: retry + 1);
+      }
     } else {
-      await refreshAT();
-      await getUser();
+      if (retry < 1 && await refreshAT()) {
+        await getUser(retry: retry + 1);
+      }
       // await FlutterLocalNotification.showNotification(500, 'Get User Error',
       //     'Failed to get User with ${responseGetUser.statusCode} | ${responseGetUser.body}');
       print(
@@ -111,7 +117,7 @@ class _HomePageState extends State<HomePage> {
     ];
 
     final Uri url =
-        Uri.parse('https://backend.apotb.shop/api/v1/notifications/');
+        Uri.parse('$apiBaseUrl/notifications/');
 
     List<INotificationBG> scrappedDataBG = [];
     var results = await Future.wait(urls.map(fetchInfosBG));
@@ -222,7 +228,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<List<INotification>> loadData() async {
-    const String apiUrl = "https://backend.apotb.shop/api/v1/notifications/";
+    const String apiUrl = "$apiBaseUrl/notifications/";
 
     try {
       var response = await http.get(Uri.parse(apiUrl));
