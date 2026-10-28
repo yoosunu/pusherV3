@@ -8,6 +8,7 @@ import 'package:pusher_v3/fetch.dart';
 import 'package:pusher_v3/notification.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:pusher_v3/config.dart';
 
 @pragma('vm:entry-point')
 void startCallback() async {
@@ -96,8 +97,8 @@ Future<ServiceRequestResult> _startService() async {
   }
 }
 
-Future<void> refreshATBG() async {
-  const String url = "https://backend.apotb.shop/api/v1/users/refresh-at";
+Future<bool> refreshATBG() async {
+  const String url = "$apiBaseUrl/users/refresh-at";
 
   var _storage = const FlutterSecureStorage();
   String? refreshToken = await _storage.read(key: "refresh_token");
@@ -110,18 +111,21 @@ Future<void> refreshATBG() async {
     var atData = json.decode(response.body);
     String at = atData["access_token"];
     await _storage.write(key: "access_token", value: at);
+    return true;
   } else {
     print(
         'Failed to refresh AT with ${response.statusCode} | ${response.body}');
     // await FlutterLocalNotification.showNotification(403, 'AT Error',
     //     'Failed to refresh AT with ${response.statusCode} | ${response.body}');
   }
+  return false;
 }
 
-Future<void> getUserBG() async {
+// retry: 토큰 갱신 후 재시도는 1회만 (갱신 실패 시 무한 재귀 방지)
+Future<void> getUserBG({int retry = 0}) async {
   var _storage = const FlutterSecureStorage();
 
-  const String url = "https://backend.apotb.shop/api/v1/users/me";
+  const String url = "$apiBaseUrl/users/me";
 
   String? access_token = await _storage.read(key: "access_token");
 
@@ -133,13 +137,15 @@ Future<void> getUserBG() async {
   if (responseGetUser.statusCode == 200) {
     await postDataBG(access_token!);
   } else if (responseGetUser.statusCode == 401) {
-    await refreshATBG();
-    await getUserBG();
+    if (retry < 1 && await refreshATBG()) {
+      await getUserBG(retry: retry + 1);
+    }
   } else {
     print(
         'Failed to get User with ${responseGetUser.statusCode} | ${responseGetUser.body}');
-    await refreshATBG();
-    await getUserBG();
+    if (retry < 1 && await refreshATBG()) {
+      await getUserBG(retry: retry + 1);
+    }
     // await FlutterLocalNotification.showNotification(
     //     responseGetUser.statusCode,
     //     'Get User Error',
@@ -154,7 +160,7 @@ Future<void> postDataBG(String accessToken) async {
     'http://www.jbnu.ac.kr/web/news/notice/sub01.do?pageIndex=3&menu=2377',
   ];
 
-  final Uri url = Uri.parse('https://backend.apotb.shop/api/v1/notifications/');
+  final Uri url = Uri.parse('$apiBaseUrl/notifications/');
 
   List<INotificationBG> scrappedDataBG = [];
   var results = await Future.wait(urls.map(fetchInfosBG));
